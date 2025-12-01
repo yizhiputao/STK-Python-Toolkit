@@ -1,0 +1,6 @@
+{
+  "comment": "默认删除配置 - 可通过命令行参数 --config 指定其他配置文件",
+  "Satellite": ["Satellite3", "Satellite4"],
+  "Facility": ["Beijing", "Shanghai"]
+}
+

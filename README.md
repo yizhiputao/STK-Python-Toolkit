@@ -5,6 +5,7 @@
 ## 功能特性
 
 - **STK 连接管理**: 连接到已运行的 STK 实例，执行命令和读取数据
+- **命令行工具**: 通用的参数解析和配置文件处理，支持灵活的脚本调用方式
 - **组件管理**: 支持代码和 JSON 两种方式创建、删除、查询卫星、地面站等组件
 - **组件修改**: 修改已存在组件的参数（轨道、位置、约束等）
 - **报告生成**: 生成场景状态报告，支持 TXT 和 JSON 格式
@@ -16,20 +17,22 @@
 .
 ├── stk_toolkit/                # 工具包核心
 │   ├── core/                   # 连接、异常
+│   ├── cli/                    # 命令行工具（参数解析、配置加载）
 │   ├── components/             # 组件创建/删除
 │   ├── modifiers/              # 组件修改
 │   ├── conditions/             # 预留条件模块
 │   └── reports/                # 报告生成
 ├── task/
 │   └── template/               # 可直接运行的任务模板
-│       ├── create_satellite_json.py
-│       ├── create_facility_json.py
-│       ├── delete_satellite.py
-│       ├── delete_facility.py
-│       ├── report.py
-│       ├── satellite*_config.json
-│       ├── *_config.json (地面站配置)
-│       └── report/
+│       ├── configs/            # 配置文件目录
+│       │   ├── create_config.json      # 默认创建配置
+│       │   ├── delete_config.json      # 默认删除配置
+│       │   ├── satellites/             # 卫星配置
+│       │   └── facilities/             # 地面站配置
+│       ├── create_components_json.py   # 通用组件创建脚本
+│       ├── delete_components.py        # 通用组件删除脚本
+│       ├── report.py                   # 场景报告生成
+│       └── report/                     # 报告输出目录
 ├── examples/                   # 其他示例脚本
 ├── run_report.py               # 快速生成场景报告
 ├── example_scenario.json       # JSON 配置样例
@@ -38,17 +41,29 @@
 
 ## 任务模板 (`task/template/`)
 
-**卫星相关：**
-- `create_satellite_json.py`: 读取目录内的 `*.json` 批量创建卫星，支持 `["ALL"]` 与是否覆盖的开关。
-- `delete_satellite.py`: 依据列表批量删除卫星，确保重复执行幂等。
-- `satellite*_config.json`: 卫星配置模板。
+**通用组件管理（推荐）：**
+- `create_components_json.py`: 通用组件批量创建脚本
+  - 支持所有组件类型（卫星、地面站等）
+  - 支持命令行参数或配置文件两种方式
+  - 自动识别 `configs/` 子目录下的配置文件
+  - 示例：`python create_components_json.py --satellites satellite3 --facilities Beijing`
+- `delete_components.py`: 通用组件批量删除脚本
+  - 支持混合删除多种类型组件
+  - 支持命令行参数或配置文件两种方式
+  - 示例：`python delete_components.py --satellites Satellite3 --facilities Beijing`
 
-**地面站相关：**
-- `create_facility_json.py`: 批量创建地面站（Facility），使用方式与卫星脚本一致。
-- `delete_facility.py`: 批量删除地面站。
-- `Beijing_config.json` / `Shanghai_config.json`: 地面站配置示例。
+**配置文件结构：**
+```
+configs/
+  ├── satellites/      # 卫星配置
+  │   ├── satellite3_config.json
+  │   └── satellite4_config.json
+  └── facilities/      # 地面站配置
+      ├── Beijing_config.json
+      └── Shanghai_config.json
+```
 
-**报告：**
+**报告生成：**
 - `report.py`: 生成并保存最新的场景文本报告。
 
 > 详细使用说明请见 `task/template/README.md`。
@@ -70,12 +85,19 @@ pip install comtypes
 ### 1. 使用模板脚本（推荐）
 
 ```bash
-python task/template/create_satellite_json.py   # 按配置批量创建卫星
-python task/template/report.py                 # 输出最新场景报告
-python task/template/delete_satellite.py       # 清理不需要的卫星
+# 使用命令行参数
+python task/template/create_components_json.py --satellites satellite3 --facilities Beijing
+python task/template/delete_components.py --satellites Satellite3 --facilities Beijing
+
+# 或使用配置文件
+python task/template/create_components_json.py   # 使用 configs/create_config.json
+python task/template/delete_components.py        # 使用 configs/delete_config.json
+
+# 生成场景报告
+python task/template/report.py
 ```
 
-> 修改 `task/template/satellite*_config.json` 或脚本内的列表，即可快速适配自己的场景。更多细节见 `task/template/README.md`。
+> 支持命令行参数和配置文件两种方式，配置文件位于 `task/template/configs/`。更多细节见 `task/template/README.md`。
 
 ### 2. 生成场景报告
 
@@ -104,6 +126,25 @@ with STKConnection() as connection:
 更多示例与高级用法可参考 `stk_toolkit/examples/` 与模板脚本。
 
 ## API 参考
+
+### CLI 模块 (stk_toolkit.cli)
+
+提供命令行工具的通用功能，用于构建脚本化工具。
+
+| 函数 | 说明 |
+|------|------|
+| `parse_create_args(default_config)` | 解析创建脚本的命令行参数 |
+| `parse_delete_args(default_config)` | 解析删除脚本的命令行参数 |
+| `load_config(config_path)` | 加载 JSON 配置文件 |
+| `resolve_components(args, default_config, operation)` | 解析要处理的组件列表（合并命令行参数和配置文件） |
+
+**使用示例：**
+```python
+from stk_toolkit.cli import parse_create_args, resolve_components
+
+args = parse_create_args(Path("configs/create_config.json"))
+components, options = resolve_components(args, default_config, operation="create")
+```
 
 ### STKConnection
 
@@ -141,8 +182,12 @@ with STKConnection() as connection:
 | 方法 | 说明 |
 |------|------|
 | `create(**kwargs)` | 创建地面站 |
+| `delete()` | 删除地面站 (实例方法) |
+| `exists(connection, name)` | 检查地面站是否存在 (静态方法) |
+| `delete_by_name(connection, name)` | 按名称删除地面站 (静态方法) |
 | `set_constraint(name, min, max)` | 设置约束 |
 | `get_info()` | 获取地面站信息 |
+| `from_dict(config)` | 从字典创建 |
 
 **位置参数:**
 - `latitude`: 纬度 (deg)

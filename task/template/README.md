@@ -1,21 +1,22 @@
 # Task Template
 
-一组可直接运行的示例脚本，帮助你在 STK 场景里快速创建/删除卫星、地面站并生成报告。可把这里当作"脚手架"：拷贝到新的任务目录后按需修改即可。
+一组可直接运行的示例脚本，帮助你在 STK 场景里快速创建/删除组件（卫星、地面站等）并生成报告。可把这里当作"脚手架"：拷贝到新的任务目录后按需修改即可。
 
 ## 目录结构
 
 ```
 task/template/
-├── create_satellite_json.py   # 读取 JSON 批量创建卫星
-├── create_facility_json.py    # 读取 JSON 批量创建地面站
-├── delete_satellite.py        # 批量删除卫星
-├── delete_facility.py         # 批量删除地面站
-├── report.py                  # 生成文本报告
-├── satellite3_config.json     # 卫星配置示例
-├── satellite4_config.json     # 卫星配置示例
-├── Beijing_config.json        # 地面站配置示例
-├── Shanghai_config.json       # 地面站配置示例
-└── report/                    # report.py 输出目录
+├── configs/                      # 配置文件目录
+│   ├── satellites/               # 卫星配置
+│   │   ├── satellite3_config.json
+│   │   └── satellite4_config.json
+│   └── facilities/               # 地面站配置
+│       ├── Beijing_config.json
+│       └── Shanghai_config.json
+├── create_components_json.py     # 通用组件批量创建脚本
+├── delete_components.py          # 通用组件批量删除脚本
+├── report.py                     # 生成文本报告
+└── report/                       # report.py 输出目录
 ```
 
 ## 使用说明
@@ -26,55 +27,81 @@ task/template/
 2. AGI STK11 必须已启动并加载场景（脚本不会自行启动 STK）
 3. 在仓库根目录执行 `python -m pip install comtypes`（若尚未安装）
 
-### 批量创建：`create_satellite_json.py`
+### 批量创建：`create_components_json.py`
 
-- `SATELLITES_TO_CREATE`：填入卫星名称列表，或设为 `["ALL"]`（大小写不敏感）按文件名顺序遍历当前目录下所有 `*.json`。
-- JSON 命名推荐 `<Name>_config.json`，结构与 `example_scenario.json` 相同。
-- `DELETE_EXISTING_BEFORE_CREATE`:
-  - `True`（默认推荐）：遇到同名卫星先删除再创建，确保幂等。
-  - `False`：检测到同名卫星会打印提示并跳过创建。
-- 运行方式：
-  ```bash
-  python task/template/create_satellite_json.py
-  ```
+**通用组件创建脚本**，支持所有类型的组件（卫星、地面站等）。
 
-### 批量删除卫星：`delete_satellite.py`
+**方式1：命令行参数（推荐）**
+```bash
+# 创建指定的卫星和地面站
+python create_components_json.py --satellites satellite3 satellite4 --facilities Beijing
 
-- 在 `SATELLITES_TO_DELETE` 中列出待删除的卫星。
-- 运行脚本会逐个调用 `SatelliteComponent.delete_by_name`，多次执行安全。
+# 只创建所有卫星
+python create_components_json.py --satellites ALL
 
-### 批量创建地面站：`create_facility_json.py`
+# 创建所有组件
+python create_components_json.py --all
 
-- 使用方式与 `create_satellite_json.py` 完全一致。
-- `FACILITIES_TO_CREATE`：填入地面站名称列表，或设为 `["ALL"]`。
-- JSON 配置格式示例：
-  ```json
-  {
-    "components": [
-      {
-        "type": "Facility",
-        "name": "Beijing",
-        "position": {
-          "latitude": 39.9042,
-          "longitude": 116.4074,
-          "altitude": 0.05
-        },
-        "constraints": [
-          {"name": "ElevationAngle", "min": 10.0}
-        ]
-      }
-    ]
-  }
-  ```
-- 运行方式：
-  ```bash
-  python task/template/create_facility_json.py
-  ```
+# 不删除已存在的同名组件（默认会先删除）
+python create_components_json.py --satellites satellite3 --no-delete
+```
 
-### 批量删除地面站：`delete_facility.py`
+**方式2：配置文件**
+```bash
+# 使用默认配置文件（configs/create_config.json）
+python create_components_json.py
 
-- 在 `FACILITIES_TO_DELETE` 中列出待删除的地面站。
-- 使用方式与 `delete_satellite.py` 一致。
+# 使用指定配置文件
+python create_components_json.py --config my_config.json
+```
+
+**配置文件格式（JSON）：**
+```json
+{
+  "satellites": ["satellite3", "satellite4"],
+  "facilities": ["Beijing", "Shanghai"],
+  "delete_existing": true
+}
+```
+
+**配置文件组织：**
+- 卫星配置放在 `configs/satellites/`
+- 地面站配置放在 `configs/facilities/`
+- 自动识别子目录类型
+
+**优先级：** 命令行参数 > --config 指定的文件 > 默认配置文件
+
+### 批量删除：`delete_components.py`
+
+**通用组件删除脚本**，支持混合删除多种类型的组件。
+
+**方式1：命令行参数（推荐）**
+```bash
+# 删除指定的卫星和地面站
+python delete_components.py --satellites Satellite3 Satellite4 --facilities Beijing
+
+# 只删除卫星
+python delete_components.py --satellites Satellite3 Satellite4
+```
+
+**方式2：配置文件**
+```bash
+# 使用默认配置文件（configs/delete_config.json）
+python delete_components.py
+
+# 使用指定配置文件
+python delete_components.py --config my_delete_config.json
+```
+
+**配置文件格式（JSON）：**
+```json
+{
+  "Satellite": ["Satellite2", "Satellite3"],
+  "Facility": ["Beijing", "Shanghai"]
+}
+```
+
+**优先级：** 命令行参数 > --config 指定的文件 > 默认配置文件
 
 ### 生成报告：`report.py`
 
@@ -83,17 +110,19 @@ task/template/
 
 ## 扩展建议
 
-- 复制 `satellite*_config.json` 或 `*_config.json` 改名即可新增模板；别忘了在相应的 `_TO_CREATE` 列表中加入对应名称。
-- 卫星和地面站可以在同一个 JSON 文件中混合配置（参考 `example_scenario.json`）。
-- 若要在其他任务中使用，可整个复制 `task/template`，然后根据场景修改脚本参数。
-- 所有脚本都使用 `sys.path` 注入项目根目录，因此无论从仓库根目录还是子路径运行都能导入 `stk_toolkit`。
+- **添加新配置**：在对应的 `configs/` 子目录下添加新的 JSON 文件即可，无需修改脚本。
+- **添加新组件类型**：在 `create_components_json.py` 和 `delete_components.py` 的 `COMPONENT_TYPE_MAP` 中添加新类型映射。
+- **混合配置**：可以在同一个 JSON 文件中配置多种类型的组件（参考 `example_scenario.json`）。
+- **任务复制**：整个复制 `task/template` 到新任务目录，根据场景修改配置文件即可。
+- **跨目录运行**：所有脚本使用 `sys.path` 注入项目根目录，从任何位置运行都能正确导入 `stk_toolkit`。
 
 ## 常见问题
 
-- **执行脚本却没有输出？** 确认 STK11 已运行；若使用 `python -m trace` 等方式运行，标准输出可能被截断，可直接 `python task/template/create_*.py` 验证。
-- **找不到 JSON 文件？** 检查文件命名是否为 `<Name>_config.json` 或 `<Name>.json`，脚本会在这些组合中寻找。
+- **执行脚本却没有输出？** 确认 STK11 已运行并加载场景。
+- **找不到 JSON 文件？** 检查文件是否在正确的子目录下（satellites/ 或 facilities/），命名是否符合 `<Name>_config.json` 或 `<Name>.json`。
 - **想保留已有对象不覆盖？** 将 `DELETE_EXISTING_BEFORE_CREATE` 设为 `False`，脚本会跳过已存在的对象。
-- **卫星和地面站能一起创建吗？** 可以！在 JSON 中同时配置多种类型的 components，使用 `ComponentFactory` 会自动识别并创建。
+- **多种类型一起操作？** 使用通用脚本可以同时创建/删除卫星和地面站，只需在配置中指定即可。
+- **如何添加新的组件类型（如 Sensor）？** 在 `configs/` 下创建 `sensors/` 目录，然后在脚本的 `COMPONENT_TYPE_MAP` 中添加映射。
 
 ## 下一步
 

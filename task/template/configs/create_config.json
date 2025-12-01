@@ -1,0 +1,7 @@
+{
+  "comment": "默认创建配置 - 可通过命令行参数 --config 指定其他配置文件",
+  "satellites": ["satellite3", "satellite4"],
+  "facilities": ["Beijing", "Shanghai"],
+  "delete_existing": true
+}
+
