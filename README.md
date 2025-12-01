@@ -191,59 +191,6 @@ ReportGenerator.register("access", AccessReport)
 | `stk_toolkit/examples/` | 更多示例代码 |
 | `task/template/` | 任务模板脚本（批量创建/删除/报告示例） |
 
-## Git 版本控制
-
-本项目已配置 Git 版本控制。
-
-### 初始化 Git 仓库
-
-**首次使用（需要重启 PowerShell）：**
-
-1. 重启 PowerShell 或 Cursor IDE
-2. 运行初始化脚本：
-   ```bash
-   .\init_git.ps1
-   ```
-
-### 常用 Git 命令
-
-```bash
-# 查看当前状态
-git status
-
-# 添加文件到暂存区
-git add <文件名>              # 添加单个文件
-git add .                     # 添加所有更改
-
-# 提交更改
-git commit -m "提交说明"
-
-# 查看提交历史
-git log
-
-# 查看文件差异
-git diff                      # 查看未暂存的更改
-git diff --staged             # 查看已暂存的更改
-
-# 分支操作
-git branch                    # 查看分支
-git checkout -b <分支名>      # 创建并切换分支
-git checkout <分支名>         # 切换分支
-
-# 远程仓库（如果需要）
-git remote add origin <仓库URL>
-git push -u origin main
-```
-
-### .gitignore 说明
-
-项目已配置 `.gitignore` 文件，自动忽略：
-- Python 缓存文件 (`__pycache__`, `*.pyc`)
-- 虚拟环境目录 (`venv/`, `env/`)
-- IDE 配置文件 (`.vscode/`, `.idea/`)
-- 生成的报告文件（除了 `scenario_report_latest.txt`）
-- 归档文件 (`archive/`)
-
 ## License
 
 MIT License
