@@ -1,16 +1,20 @@
 # Task Template
 
-一组可直接运行的示例脚本，帮助你在 STK 场景里快速创建/删除卫星并生成报告。可把这里当作"脚手架"：拷贝到新的任务目录后按需修改即可。
+一组可直接运行的示例脚本，帮助你在 STK 场景里快速创建/删除卫星、地面站并生成报告。可把这里当作"脚手架"：拷贝到新的任务目录后按需修改即可。
 
 ## 目录结构
 
 ```
 task/template/
 ├── create_satellite_json.py   # 读取 JSON 批量创建卫星
+├── create_facility_json.py    # 读取 JSON 批量创建地面站
 ├── delete_satellite.py        # 批量删除卫星
+├── delete_facility.py         # 批量删除地面站
 ├── report.py                  # 生成文本报告
-├── satellite3_config.json     # 示例配置
-├── satellite4_config.json     # 示例配置
+├── satellite3_config.json     # 卫星配置示例
+├── satellite4_config.json     # 卫星配置示例
+├── Beijing_config.json        # 地面站配置示例
+├── Shanghai_config.json       # 地面站配置示例
 └── report/                    # report.py 输出目录
 ```
 
@@ -34,10 +38,43 @@ task/template/
   python task/template/create_satellite_json.py
   ```
 
-### 批量删除：`delete_satellite.py`
+### 批量删除卫星：`delete_satellite.py`
 
 - 在 `SATELLITES_TO_DELETE` 中列出待删除的卫星。
 - 运行脚本会逐个调用 `SatelliteComponent.delete_by_name`，多次执行安全。
+
+### 批量创建地面站：`create_facility_json.py`
+
+- 使用方式与 `create_satellite_json.py` 完全一致。
+- `FACILITIES_TO_CREATE`：填入地面站名称列表，或设为 `["ALL"]`。
+- JSON 配置格式示例：
+  ```json
+  {
+    "components": [
+      {
+        "type": "Facility",
+        "name": "Beijing",
+        "position": {
+          "latitude": 39.9042,
+          "longitude": 116.4074,
+          "altitude": 0.05
+        },
+        "constraints": [
+          {"name": "ElevationAngle", "min": 10.0}
+        ]
+      }
+    ]
+  }
+  ```
+- 运行方式：
+  ```bash
+  python task/template/create_facility_json.py
+  ```
+
+### 批量删除地面站：`delete_facility.py`
+
+- 在 `FACILITIES_TO_DELETE` 中列出待删除的地面站。
+- 使用方式与 `delete_satellite.py` 一致。
 
 ### 生成报告：`report.py`
 
@@ -46,15 +83,17 @@ task/template/
 
 ## 扩展建议
 
-- 复制 `satellite*_config.json` 改名即可新增模板；别忘了在 `SATELLITES_TO_CREATE` 中加入对应名称。
+- 复制 `satellite*_config.json` 或 `*_config.json` 改名即可新增模板；别忘了在相应的 `_TO_CREATE` 列表中加入对应名称。
+- 卫星和地面站可以在同一个 JSON 文件中混合配置（参考 `example_scenario.json`）。
 - 若要在其他任务中使用，可整个复制 `task/template`，然后根据场景修改脚本参数。
 - 所有脚本都使用 `sys.path` 注入项目根目录，因此无论从仓库根目录还是子路径运行都能导入 `stk_toolkit`。
 
 ## 常见问题
 
-- **执行脚本却没有输出？** 确认 STK11 已运行；若使用 `python -m trace` 等方式运行，标准输出可能被截断，可直接 `python task/template/create_satellite_json.py` 验证。
+- **执行脚本却没有输出？** 确认 STK11 已运行；若使用 `python -m trace` 等方式运行，标准输出可能被截断，可直接 `python task/template/create_*.py` 验证。
 - **找不到 JSON 文件？** 检查文件命名是否为 `<Name>_config.json` 或 `<Name>.json`，脚本会在这些组合中寻找。
-- **想保留已有卫星不覆盖？** 将 `DELETE_EXISTING_BEFORE_CREATE` 设为 `False`，脚本会跳过已存在的卫星。
+- **想保留已有对象不覆盖？** 将 `DELETE_EXISTING_BEFORE_CREATE` 设为 `False`，脚本会跳过已存在的对象。
+- **卫星和地面站能一起创建吗？** 可以！在 JSON 中同时配置多种类型的 components，使用 `ComponentFactory` 会自动识别并创建。
 
 ## 下一步
 

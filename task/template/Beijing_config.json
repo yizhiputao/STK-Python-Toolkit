@@ -1,0 +1,19 @@
+{
+  "description": "北京地面站配置",
+  "components": [
+    {
+      "type": "Facility",
+      "name": "Beijing",
+      "position": {
+        "latitude": 39.9042,
+        "longitude": 116.4074,
+        "altitude": 0.05
+      },
+      "constraints": [
+        {"name": "ElevationAngle", "min": 10.0},
+        {"name": "SunElevationAngle", "min": -90.0, "max": 0.0}
+      ]
+    }
+  ]
+}
+

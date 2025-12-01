@@ -23,9 +23,12 @@
 ├── task/
 │   └── template/               # 可直接运行的任务模板
 │       ├── create_satellite_json.py
+│       ├── create_facility_json.py
 │       ├── delete_satellite.py
+│       ├── delete_facility.py
 │       ├── report.py
 │       ├── satellite*_config.json
+│       ├── *_config.json (地面站配置)
 │       └── report/
 ├── examples/                   # 其他示例脚本
 ├── run_report.py               # 快速生成场景报告
@@ -35,10 +38,18 @@
 
 ## 任务模板 (`task/template/`)
 
+**卫星相关：**
 - `create_satellite_json.py`: 读取目录内的 `*.json` 批量创建卫星，支持 `["ALL"]` 与是否覆盖的开关。
 - `delete_satellite.py`: 依据列表批量删除卫星，确保重复执行幂等。
+- `satellite*_config.json`: 卫星配置模板。
+
+**地面站相关：**
+- `create_facility_json.py`: 批量创建地面站（Facility），使用方式与卫星脚本一致。
+- `delete_facility.py`: 批量删除地面站。
+- `Beijing_config.json` / `Shanghai_config.json`: 地面站配置示例。
+
+**报告：**
 - `report.py`: 生成并保存最新的场景文本报告。
-- `satellite*_config.json`: 可复制扩展的配置模板。
 
 > 详细使用说明请见 `task/template/README.md`。
 

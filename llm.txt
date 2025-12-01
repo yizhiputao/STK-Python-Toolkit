@@ -264,5 +264,36 @@ STKError (base)
 
 ## Debug Notes (2025-11-28)
 
-- **COM 接口兼容性**: 在 Python 3.12 + STK 11 环境下，`QueryInterface(IAgClassicalSizeShapeSemimajorAxis)` 可能抛出“接口不支持”。解决方案是先调用对象本身的 `QueryInterface`，捕获 `COMError` 后回退到原对象，同时确保使用正确的枚举常量：`SizeShapeType = 4 (eSizeShapeSemimajorAxis)`、`AscNodeType = 1 (eAscNodeRAAN)`、`LocationType = 5 (eLocationTrueAnomaly)`。
+- **COM 接口兼容性**: 在 Python 3.12 + STK 11 环境下，`QueryInterface(IAgClassicalSizeShapeSemimajorAxis)` 可能抛出"接口不支持"。解决方案是先调用对象本身的 `QueryInterface`，捕获 `COMError` 后回退到原对象，同时确保使用正确的枚举常量：`SizeShapeType = 4 (eSizeShapeSemimajorAxis)`、`AscNodeType = 1 (eAscNodeRAAN)`、`LocationType = 5 (eLocationTrueAnomaly)`。
 - **轨道参数读取/写入顺序**: 经典根数需要先设置 `SizeShapeType` 再获取 `SizeShape` 接口，否则部分环境无法返回 `SemiMajorAxis`。同理，在读取 RAAN/真近点角时应先设置 `AscNodeType`/`LocationType`。
+
+## Debug Notes (2025-12-01) - Facility Constraints
+
+- **地面站约束必须先添加后设置**: 新创建的地面站**只有默认的 `LineOfSight` 约束**，其他约束（如 `ElevationAngle`、`SunElevationAngle`）需要先通过 `AddConstraint(枚举值)` 添加，然后才能设置 min/max 值。已存在的地面站可以直接使用 `GetActiveConstraint(name)` 修改。
+
+- **约束枚举值映射** (`AgEAccessCnstr`):
+  ```python
+  "ElevationAngle": 3        # eAccessCnstrAngleElevation
+  "AzimuthAngle": 2          # eAccessCnstrAngleAzimuth  
+  "Range": 5                 # eAccessCnstrRange
+  "SunElevationAngle": 14    # eAccessCnstrSunElevation
+  "LunarElevationAngle": 13  # eAccessCnstrLunarElevation
+  ```
+
+- **访问约束的正确流程**:
+  1. 创建地面站（设置位置）
+  2. 检查约束是否存在：遍历 `AccessConstraints.Item(i)`，比较 `ConstraintName`
+  3. 不存在则添加：`ac.AddConstraint(枚举值)`（返回约束对象）
+  4. 设置参数：`constraint.QueryInterface(IAgAccessCnstrMinMax)` 然后设置 `EnableMin/Max` 和 `Min/Max`
+
+- **常见错误**:
+  - ❌ `GetActiveConstraint(name)` - 需要索引不是名称
+  - ❌ `GetActiveConstraint(i)` - 对新建地面站会失败
+  - ❌ 直接设置不存在的约束 - 会报"未找到约束"
+  - ✅ 使用 `Item(i)` 遍历 + `AddConstraint(枚举)` + `QueryInterface`
+
+- **调试技巧**: 打印所有约束名称以验证：
+  ```python
+  for i in range(ac.Count):
+      print(f"[{i}] {ac.Item(i).ConstraintName}")
+  ```

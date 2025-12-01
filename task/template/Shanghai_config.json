@@ -1,0 +1,18 @@
+{
+  "description": "上海地面站配置",
+  "components": [
+    {
+      "type": "Facility",
+      "name": "Shanghai",
+      "position": {
+        "latitude": 31.2304,
+        "longitude": 121.4737,
+        "altitude": 0.01
+      },
+      "constraints": [
+        {"name": "ElevationAngle", "min": 10.0}
+      ]
+    }
+  ]
+}
+

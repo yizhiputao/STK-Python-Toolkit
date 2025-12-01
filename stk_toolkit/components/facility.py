@@ -61,6 +61,45 @@ class FacilityComponent(ComponentBase):
         stk_objects = self._connection.stk_objects
         return self._stk_object.QueryInterface(stk_objects.IAgFacility)
     
+    @staticmethod
+    def exists(connection: STKConnection, name: str) -> bool:
+        """
+        检查地面站是否存在
+        
+        Args:
+            connection: STK 连接对象
+            name: 地面站名称
+            
+        Returns:
+            bool: 地面站是否存在
+        """
+        try:
+            path = f"*/Facility/{name}"
+            connection.root.GetObjectFromPath(path)
+            return True
+        except:
+            return False
+    
+    @staticmethod
+    def delete_by_name(connection: STKConnection, name: str) -> bool:
+        """
+        按名称删除地面站
+        
+        Args:
+            connection: STK 连接对象
+            name: 地面站名称
+            
+        Returns:
+            bool: 是否成功删除 (如果地面站不存在返回 False)
+        """
+        try:
+            path = f"*/Facility/{name}"
+            obj = connection.root.GetObjectFromPath(path)
+            obj.Unload()
+            return True
+        except:
+            return False
+    
     def _configure(self, **kwargs):
         """
         配置地面站参数
@@ -69,24 +108,15 @@ class FacilityComponent(ComponentBase):
             latitude: 纬度 (deg)
             longitude: 经度 (deg)
             altitude: 海拔 (km)
-            constraints: 约束列表
+            constraints: 约束列表（可选，稍后设置）
         """
-        # 设置位置
+        # 只设置位置，不设置约束
         latitude = kwargs.get("latitude", 0.0)
         longitude = kwargs.get("longitude", 0.0)
         altitude = kwargs.get("altitude", 0.0)
         
         position = self._interface.Position
         position.AssignGeodetic(latitude, longitude, altitude)
-        
-        # 设置约束
-        constraints = kwargs.get("constraints", [])
-        for constraint in constraints:
-            self.set_constraint(
-                constraint.get("name"),
-                min_value=constraint.get("min"),
-                max_value=constraint.get("max")
-            )
     
     def set_position(self, latitude: float, longitude: float, altitude: float = 0.0):
         """
@@ -103,36 +133,95 @@ class FacilityComponent(ComponentBase):
         position = self._interface.Position
         position.AssignGeodetic(latitude, longitude, altitude)
     
-    def set_constraint(self, name: str, min_value: Optional[float] = None, 
-                       max_value: Optional[float] = None):
+    def _set_constraints_after_creation(self, constraints: List[Dict[str, Any]]):
         """
-        设置访问约束
+        创建后设置约束（先添加后设置）
         
         Args:
-            name: 约束名称，如 "ElevationAngle", "SunElevationAngle" 等
-            min_value: 最小值
-            max_value: 最大值
+            constraints: 约束列表，每个元素包含 name, min, max
         """
         if not self._interface:
             raise STKComponentError("地面站未创建或未加载")
         
         stk_objects = self._connection.stk_objects
         
+        # 约束类型枚举映射（从约束名称到枚举值）
+        # 参考 AgEAccessCnstr 枚举
+        constraint_type_map = {
+            "ElevationAngle": 3,  # eAccessCnstrAngleElevation = 3
+            "AzimuthAngle": 2,  # eAccessCnstrAngleAzimuth = 2
+            "Range": 5,  # eAccessCnstrRange = 5
+            "SunElevationAngle": 14,  # eAccessCnstrSunElevation = 14
+            "LunarElevationAngle": 13,  # eAccessCnstrLunarElevation = 13
+        }
+        
         try:
             ac = self._interface.AccessConstraints
-            constraint = ac.GetActiveConstraint(name)
-            minmax = constraint.QueryInterface(stk_objects.IAgAccessCnstrMinMax)
             
-            if min_value is not None:
-                minmax.EnableMin = True
-                minmax.Min = min_value
-            
-            if max_value is not None:
-                minmax.EnableMax = True
-                minmax.Max = max_value
+            for constraint in constraints:
+                target_name = constraint.get("name")
+                if not target_name:
+                    continue
                 
+                try:
+                    # 先尝试查找约束是否已存在
+                    found_constraint = None
+                    for i in range(ac.Count):
+                        c = ac.Item(i)
+                        if c.ConstraintName == target_name:
+                            found_constraint = c
+                            break
+                    
+                    # 如果不存在，尝试添加约束
+                    if found_constraint is None:
+                        constraint_type = constraint_type_map.get(target_name)
+                        if constraint_type is not None:
+                            try:
+                                found_constraint = ac.AddConstraint(constraint_type)
+                            except Exception as e:
+                                # 添加失败，跳过该约束
+                                continue
+                        else:
+                            # 未知的约束类型，跳过
+                            continue
+                    
+                    # 设置约束的 min/max 值
+                    minmax = found_constraint.QueryInterface(stk_objects.IAgAccessCnstrMinMax)
+                    
+                    if "min" in constraint:
+                        minmax.EnableMin = True
+                        minmax.Min = constraint["min"]
+                    
+                    if "max" in constraint:
+                        minmax.EnableMax = True
+                        minmax.Max = constraint["max"]
+                        
+                except Exception as e:
+                    # 如果设置失败，静默跳过
+                    continue
+                    
         except Exception as e:
-            raise STKComponentError(f"设置约束 '{name}' 失败: {e}")
+            raise STKComponentError(f"设置约束失败: {e}")
+    
+    def set_constraint(self, name: str, min_value: Optional[float] = None, 
+                       max_value: Optional[float] = None):
+        """
+        设置访问约束（用于单个约束设置）
+        
+        Args:
+            name: 约束名称，如 "ElevationAngle", "SunElevationAngle" 等
+            min_value: 最小值
+            max_value: 最大值
+        """
+        constraints = []
+        constraint = {"name": name}
+        if min_value is not None:
+            constraint["min"] = min_value
+        if max_value is not None:
+            constraint["max"] = max_value
+        constraints.append(constraint)
+        
+        self._set_constraints_after_creation(constraints)
     
     def enable_line_of_sight(self, enabled: bool = True):
         """
@@ -146,9 +235,22 @@ class FacilityComponent(ComponentBase):
         
         try:
             ac = self._interface.AccessConstraints
-            los = ac.GetActiveConstraint("LineOfSight")
+            
+            # 遍历所有约束找到 LineOfSight 约束（使用 Item 而不是 GetActiveConstraint）
+            los = None
+            for i in range(ac.Count):
+                c = ac.Item(i)
+                if c.ConstraintName == "LineOfSight":
+                    los = c
+                    break
+            
+            if los is None:
+                raise STKComponentError("未找到 LineOfSight 约束")
+            
             # LineOfSight 约束通常没有 min/max，只有启用/禁用
             # 它的存在本身就表示启用
+        except STKComponentError:
+            raise
         except Exception as e:
             raise STKComponentError(f"设置 LineOfSight 约束失败: {e}")
     
@@ -253,13 +355,18 @@ class FacilityComponent(ComponentBase):
         # 解析位置
         position = config.get("position", {})
         
+        # 第一步：先创建地面站（只设置位置）
         facility = cls(connection, name)
         facility.create(
             latitude=position.get("latitude", 0.0),
             longitude=position.get("longitude", 0.0),
-            altitude=position.get("altitude", 0.0),
-            constraints=config.get("constraints", [])
+            altitude=position.get("altitude", 0.0)
         )
+        
+        # 第二步：创建成功后再设置约束（使用 modifier 中的方法）
+        constraints = config.get("constraints", [])
+        if constraints:
+            facility._set_constraints_after_creation(constraints)
         
         return facility
 
