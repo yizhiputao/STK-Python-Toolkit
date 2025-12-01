@@ -191,6 +191,12 @@ ReportGenerator.register("access", AccessReport)
 | `stk_toolkit/examples/` | 更多示例代码 |
 | `task/template/` | 任务模板脚本（批量创建/删除/报告示例） |
 
+缓存文件 (`__pycache__`, `*.pyc`)
+- 虚拟环境目录 (`venv/`, `env/`)
+- IDE 配置文件 (`.vscode/`, `.idea/`)
+- 生成的报告文件（除了 `scenario_report_latest.txt`）
+- 归档文件 (`archive/`)
+
 ## License
 
 MIT License

@@ -14,7 +14,7 @@ from stk_toolkit import STKConnection
 from stk_toolkit.components import SatelliteComponent
 
 # 需要删除的卫星名称列表，可按需修改
-SATELLITES_TO_DELETE = ["Satellite5", "Satellite3", "Satellite4"]
+SATELLITES_TO_DELETE = ["Satellite2", "Satellite3", "Satellite4"]
 
 
 def _delete_satellites(connection: STKConnection, names: Iterable[str]) -> None:
