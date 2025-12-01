@@ -7,7 +7,6 @@
 ```
 task/template/
 ├── create_satellite_json.py   # 读取 JSON 批量创建卫星
-├── create_satellite.py        # 使用脚本常量直接创建单颗卫星
 ├── delete_satellite.py        # 批量删除卫星
 ├── report.py                  # 生成文本报告
 ├── satellite3_config.json     # 示例配置
@@ -34,12 +33,6 @@ task/template/
   ```bash
   python task/template/create_satellite_json.py
   ```
-
-### 单颗创建：`create_satellite.py`
-
-- 直接使用脚本顶部的常量（`SATELLITE_NAME`、`ORBIT_PARAMS`）创建单颗卫星，不再依赖场景中已有对象。
-- `DELETE_EXISTING_BEFORE_CREATE=True` 时会在创建前删除同名卫星，确保脚本可重复执行。
-- 如需创建不同卫星，调整常量即可。
 
 ### 批量删除：`delete_satellite.py`
 

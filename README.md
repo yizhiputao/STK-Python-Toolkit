@@ -23,7 +23,6 @@
 ├── task/
 │   └── template/               # 可直接运行的任务模板
 │       ├── create_satellite_json.py
-│       ├── create_satellite.py
 │       ├── delete_satellite.py
 │       ├── report.py
 │       ├── satellite*_config.json
@@ -39,7 +38,6 @@
 - `create_satellite_json.py`: 读取目录内的 `*.json` 批量创建卫星，支持 `["ALL"]` 与是否覆盖的开关。
 - `delete_satellite.py`: 依据列表批量删除卫星，确保重复执行幂等。
 - `report.py`: 生成并保存最新的场景文本报告。
-- `create_satellite.py`: 直接按照脚本常量创建单颗卫星，可设置是否覆盖同名对象。
 - `satellite*_config.json`: 可复制扩展的配置模板。
 
 > 详细使用说明请见 `task/template/README.md`。
