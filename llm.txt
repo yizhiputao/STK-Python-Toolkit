@@ -295,16 +295,32 @@ configs/
 
 ## Debug Notes (2025-12-01) - Facility Constraints
 
-- **地面站约束必须先添加后设置**: 新创建的地面站**只有默认的 `LineOfSight` 约束**，其他约束（如 `ElevationAngle`、`SunElevationAngle`）需要先通过 `AddConstraint(枚举值)` 添加，然后才能设置 min/max 值。已存在的地面站可以直接使用 `GetActiveConstraint(name)` 修改。
+- **地面站约束必须先添加后设置**: 新创建的地面站**只有默认的 `LineOfSight` 约束**，其他约束（如 `ElevationAngle`、`SunElevationAngle`）需要先通过 `AddConstraint(枚举值)` 添加，然后才能设置 min/max 值。已存在的地面站可以直接使用已有约束。
 
-- **约束枚举值映射** (`AgEAccessCnstr`):
+- **约束枚举值映射** (`AgEAccessCnstr`) - 通过测试 0-200 范围获得的正确映射：
   ```python
-  "ElevationAngle": 3        # eAccessCnstrAngleElevation
-  "AzimuthAngle": 2          # eAccessCnstrAngleAzimuth  
-  "Range": 5                 # eAccessCnstrRange
-  "SunElevationAngle": 14    # eAccessCnstrSunElevation
-  "LunarElevationAngle": 13  # eAccessCnstrLunarElevation
+  # 常用基础约束
+  "ElevationAngle": 14       # 地面站仰角（最常用）
+  "AzimuthAngle": 6          # 方位角
+  "Range": 34                # 距离
+  "RangeRate": 35            # 距离变化率
+  "Altitude": 2              # 高度
+  "Duration": 13             # 持续时间
+  
+  # 天文约束
+  "SunElevationAngle": 58    # 太阳仰角（关键！不是14）
+  "LunarElevationAngle": 30  # 月球仰角（不是13）
+  "LOSSunExclusion": 29      # 太阳遮挡
+  "LOSLunarExclusion": 28    # 月球遮挡
+  "LOSSunIlluminationAngle": 187  # 太阳照明角
+  
+  # 其他约束
+  "Lighting": 25             # 光照条件
+  "LocalTime": 27            # 本地时间
+  # LineOfSight (26) 默认存在，无需添加
   ```
+  
+  **完整映射表**: 参见 `stk_toolkit/components/facility.py` 中的 `constraint_type_map`（包含约 80+ 种约束类型）
 
 - **访问约束的正确流程**:
   1. 创建地面站（设置位置）
@@ -313,13 +329,25 @@ configs/
   4. 设置参数：`constraint.QueryInterface(IAgAccessCnstrMinMax)` 然后设置 `EnableMin/Max` 和 `Min/Max`
 
 - **常见错误**:
-  - ❌ `GetActiveConstraint(name)` - 需要索引不是名称
-  - ❌ `GetActiveConstraint(i)` - 对新建地面站会失败
-  - ❌ 直接设置不存在的约束 - 会报"未找到约束"
-  - ✅ 使用 `Item(i)` 遍历 + `AddConstraint(枚举)` + `QueryInterface`
+  - ❌ `GetActiveConstraint(name)` - 此方法不接受字符串名称
+  - ❌ `GetActiveConstraint(i)` - 对新建地面站可能索引越界
+  - ❌ 直接设置不存在的约束 - 会报"未找到约束"或"语法错误"
+  - ❌ 使用错误的枚举值 - 会添加错误的约束类型
+  - ✅ 使用 `Item(i)` 遍历查找 + `AddConstraint(正确枚举)` + `QueryInterface`
 
-- **调试技巧**: 打印所有约束名称以验证：
+- **调试技巧**: 
   ```python
+  # 方法1：打印所有已有约束
+  ac = facility._interface.AccessConstraints
   for i in range(ac.Count):
       print(f"[{i}] {ac.Item(i).ConstraintName}")
+  
+  # 方法2：测试枚举值映射（创建临时地面站，尝试添加不同枚举值）
+  # 参见开发过程中使用的 _test_constraint_enum.py（已删除）
   ```
+
+- **经验教训**: 
+  - STK COM API 的约束不是简单的"配置属性"，而是需要**先创建对象**才能配置的"约束对象"
+  - 枚举值不连续（0-200范围内只有约50个有效值）
+  - 不同约束类型的接口不同（MinMax、Angle、Time等），需要正确的 QueryInterface
+  - 在配置复杂约束时，始终先通过 STK UI 手动验证流程，再编写代码

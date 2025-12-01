@@ -146,13 +146,110 @@ class FacilityComponent(ComponentBase):
         stk_objects = self._connection.stk_objects
         
         # 约束类型枚举映射（从约束名称到枚举值）
-        # 参考 AgEAccessCnstr 枚举
+        # 基于实际测试的 AgEAccessCnstr 枚举值（通过 _test_constraint_enum.py 测试获得，0-200范围）
         constraint_type_map = {
-            "ElevationAngle": 3,  # eAccessCnstrAngleElevation = 3
-            "AzimuthAngle": 2,  # eAccessCnstrAngleAzimuth = 2
-            "Range": 5,  # eAccessCnstrRange = 5
-            "SunElevationAngle": 14,  # eAccessCnstrSunElevation = 14
-            "LunarElevationAngle": 13,  # eAccessCnstrLunarElevation = 13
+            # 常用基础约束
+            "Altitude": 2,
+            "AngularRate": 3,
+            "ApparentTime": 4,
+            "AzimuthAngle": 6,
+            "AzimuthRate": 69,
+            "CrdnAngle": 9,
+            "CrdnVectorMag": 10,
+            "Duration": 13,
+            "ElevationAngle": 14,
+            "ElevationRate": 70,
+            "GMT": 16,
+            "Intervals": 22,
+            "Lighting": 25,
+            # "LineOfSight": 26,  # 枚举值26是LineOfSight，默认已激活，无需添加
+            "LocalTime": 27,
+            "Range": 34,
+            "RangeRate": 35,
+            "PropagationDelay": 33,
+            
+            # 天文约束
+            "LunarElevationAngle": 30,
+            "SunElevationAngle": 58,
+            "LOSLunarExclusion": 28,
+            "LOSSunExclusion": 29,
+            "LOSSunIlluminationAngle": 187,
+            
+            # 地理约束
+            "ObjectExclusionAngle": 32,
+            "ThirdBodyObstruction": 61,
+            "TerrainMask": 67,
+            "AzElMask": 68,
+            "GeoExclusion": 71,
+            "GroundSampleDistance": 72,
+            "HeightAboveHorizon": 73,
+            "TerrainGrazingAngle": 74,
+            "CbObstruction": 91,
+            
+            # SAR（合成孔径雷达）约束
+            "SarAreaRate": 36,
+            "SarAzRes": 37,
+            "SarCNR": 38,
+            "SarIntTime": 40,
+            "SarPTCR": 41,
+            "SarSCR": 42,
+            "SarSigmaN": 43,
+            "SarSNR": 44,
+            "SarCNRJamming": 105,
+            "SarJOverS": 106,
+            "SarSCRJamming": 115,
+            "SarSNRJamming": 116,
+            "SarOrthoPolCNR": 107,
+            "SarOrthoPolCNRJamming": 108,
+            "SarOrthoPolJOverS": 109,
+            "SarOrthoPolPTCR": 110,
+            "SarOrthoPolSCR": 111,
+            "SarOrthoPolSCRJamming": 112,
+            "SarOrthoPolSNR": 113,
+            "SarOrthoPolSNRJamming": 114,
+            
+            # 搜索/跟踪（Search/Track）约束
+            "SrchTrkClearDoppler": 46,
+            "SrchTrkDwellTime": 47,
+            "SrchTrkIntegratedPDet": 48,
+            "SrchTrkIntegratedPulses": 49,
+            "SrchTrkIntegratedSNR": 50,
+            "SrchTrkIntegrationTime": 51,
+            "SrchTrkMLCFilter": 52,
+            "SrchTrkSinglePulsePDet": 53,
+            "SrchTrkSinglePulseSNR": 54,
+            "SrchTrkSLCFilter": 55,
+            "SrchTrkUnambigDoppler": 56,
+            "SrchTrkUnambigRange": 57,
+            "SrchTrkDwellTimeJamming": 117,
+            "SrchTrkIntegratedJOverS": 118,
+            "SrchTrkIntegratedPDetJamming": 119,
+            "SrchTrkIntegratedPulsesJamming": 120,
+            "SrchTrkIntegratedSNRJamming": 121,
+            "SrchTrkIntegrationTimeJamming": 122,
+            "SrchTrkSinglePulseJOverS": 139,
+            "SrchTrkSinglePulsePDetJamming": 140,
+            "SrchTrkSinglePulseSNRJamming": 141,
+            "SrchTrkOrthoPolDwellTime": 123,
+            "SrchTrkOrthoPolDwellTimeJamming": 124,
+            "SrchTrkOrthoPolIntegratedJOverS": 125,
+            "SrchTrkOrthoPolIntegratedPDet": 126,
+            "SrchTrkOrthoPolIntegratedPDetJamming": 127,
+            "SrchTrkOrthoPolIntegratedPulses": 128,
+            "SrchTrkOrthoPolIntegratedPulsesJamming": 129,
+            "SrchTrkOrthoPolIntegratedSNR": 130,
+            "SrchTrkOrthoPolIntegratedSNRJamming": 131,
+            "SrchTrkOrthoPolIntegrationTime": 132,
+            "SrchTrkOrthoPolIntegrationTimeJamming": 133,
+            "SrchTrkOrthoPolSinglePulseJOverS": 134,
+            "SrchTrkOrthoPolSinglePulsePDet": 135,
+            "SrchTrkOrthoPolSinglePulsePDetJamming": 136,
+            "SrchTrkOrthoPolSinglePulseSNR": 137,
+            "SrchTrkOrthoPolSinglePulseSNRJamming": 138,
+            
+            # 其他约束
+            "Matlab": 31,
+            "CrdnCondition": 104,
         }
         
         try:
