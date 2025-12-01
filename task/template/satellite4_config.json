@@ -1,0 +1,20 @@
+{
+  "components": [
+    {
+      "type": "Satellite",
+      "name": "Satellite4",
+      "propagator": "J2Perturbation",
+      "step": 60.0,
+      "orbit": {
+        "semi_major_axis": 7200.0,
+        "eccentricity": 0.01,
+        "inclination": 55.0,
+        "raan": 180.0,
+        "arg_of_perigee": 45.0,
+        "true_anomaly": 120.0
+      }
+    }
+  ]
+}
+
+

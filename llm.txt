@@ -1,0 +1,268 @@
+# STK Python Toolkit - LLM Context
+
+> This file provides context for Large Language Models working with this codebase.
+
+## Project Summary
+
+A modular Python toolkit for interacting with AGI STK11 (Systems Tool Kit) via COM interface. Designed with high cohesion and low coupling principles.
+
+**Key Constraints:**
+- Windows only (STK COM limitation)
+- STK11 must be running before code execution
+- Python 3.8+ required
+- Uses `comtypes` library for COM interaction
+
+## Architecture Overview
+
+```
+stk_toolkit/
+├── core/           → Connection management, exceptions
+├── components/     → Create/Delete/Query satellites, facilities, etc.
+├── modifiers/      → Modify existing components
+├── conditions/     → Analysis conditions (placeholder)
+└── reports/        → Generate reports (TEXT/JSON)
+```
+
+## Module Responsibilities
+
+| Module | Purpose | Key Classes |
+|--------|---------|-------------|
+| `core` | STK connection | `STKConnection` |
+| `components` | Create/Delete/Query STK objects | `SatelliteComponent`, `FacilityComponent`, `ComponentFactory` |
+| `modifiers` | Modify existing objects | `SatelliteModifier`, `FacilityModifier` |
+| `conditions` | Analysis (reserved) | `ConditionBase` |
+| `reports` | Generate reports | `ScenarioReport`, `ReportGenerator` |
+
+## STK Object Type Constants
+
+```python
+eFacility = 8
+eSatellite = 18
+eSensor = 20
+eTarget = 24
+# LineOfSight constraint type = 26
+```
+
+## Common Patterns
+
+### 1. Connecting to STK
+```python
+from stk_toolkit import STKConnection
+
+with STKConnection() as conn:
+    scenario = conn.current_scenario
+    root = conn.root
+    stk_objects = conn.stk_objects  # comtypes.gen.STKObjects
+```
+
+### 2. QueryInterface Pattern
+```python
+# Getting specific interface from STK object
+satellite = obj.QueryInterface(stk_objects.IAgSatellite)
+facility = obj.QueryInterface(stk_objects.IAgFacility)
+j2_prop = sat.Propagator.QueryInterface(stk_objects.IAgVePropagatorJ2Perturbation)
+```
+
+### 3. Creating Components
+```python
+# Code-based
+sat = SatelliteComponent(conn, "MySat")
+sat.create(semi_major_axis=7000, inclination=98.0, ...)
+
+# JSON-based
+factory = ComponentFactory(conn)
+components = factory.create_from_json("config.json")
+```
+
+### 4. Checking & Deleting Components
+```python
+# Check if satellite exists
+if SatelliteComponent.exists(conn, "MySat"):
+    # Delete by name (static method)
+    SatelliteComponent.delete_by_name(conn, "MySat")
+
+# Or delete via instance
+sat.delete()
+```
+
+### 5. Modifying Components
+```python
+modifier = SatelliteModifier(conn)
+modifier.load("Satellite1").set_orbit(semi_major_axis=7200)
+# Or batch modify:
+modifier.apply({"orbit": {"inclination": 98.5}})
+```
+
+### 6. Generating Reports
+```python
+generator = ReportGenerator(conn, output_dir="./reports")
+report = generator.generate_scenario_report(format=ReportFormat.TEXT)
+```
+
+## Orbit Parameters (Classical Elements)
+
+| Parameter | Property | Unit |
+|-----------|----------|------|
+| Semi-major axis | `semi_major_axis` | km |
+| Eccentricity | `eccentricity` | - |
+| Inclination | `inclination` | deg |
+| RAAN | `raan` | deg |
+| Arg of Perigee | `arg_of_perigee` | deg |
+| True Anomaly | `true_anomaly` | deg |
+
+## Propagator Types
+
+```python
+class PropagatorType:
+    HPOP = 0              # High Precision
+    J2_PERTURBATION = 1   # Most common
+    J4_PERTURBATION = 2
+    SGP4 = 3
+    SPK = 4
+    TWO_BODY = 5
+```
+
+## Access Constraints
+
+Common constraint names:
+- `ElevationAngle` - Ground station elevation angle
+- `SunElevationAngle` - Sun position constraint
+- `LunarElevationAngle` - Moon position constraint
+- `LineOfSight` - Line of sight (type 26, no min/max)
+
+Setting constraints:
+```python
+ac = facility.AccessConstraints
+c = ac.GetActiveConstraint("ElevationAngle")
+minmax = c.QueryInterface(stk_objects.IAgAccessCnstrMinMax)
+minmax.EnableMin = True
+minmax.Min = 10.0  # degrees
+```
+
+## JSON Configuration Format
+
+```json
+{
+  "components": [
+    {
+      "type": "Satellite",
+      "name": "Sat1",
+      "propagator": "J2Perturbation",
+      "orbit": {
+        "semi_major_axis": 7000,
+        "eccentricity": 0.001,
+        "inclination": 98.0,
+        "raan": 0,
+        "arg_of_perigee": 0,
+        "true_anomaly": 0
+      },
+      "step": 60
+    },
+    {
+      "type": "Facility",
+      "name": "GroundStation1",
+      "position": {
+        "latitude": 40.0,
+        "longitude": 116.0,
+        "altitude": 0.05
+      },
+      "constraints": [
+        {"name": "ElevationAngle", "min": 10.0}
+      ]
+    }
+  ]
+}
+```
+
+## Exception Hierarchy
+
+```
+STKError (base)
+├── STKConnectionError  → Connection issues
+├── STKComponentError   → Component creation/loading
+├── STKModifyError      → Modification failures
+└── STKReportError      → Report generation
+```
+
+## Extension Points
+
+### Adding New Component Types
+
+1. Create `stk_toolkit/components/new_type.py`
+2. Inherit from `ComponentBase`
+3. Implement abstract methods:
+   - `component_type` (property)
+   - `_get_stk_object_type()` → return int
+   - `_get_interface()` → return COM interface
+   - `get_info()` → return dict
+   - `from_dict()` → classmethod
+4. Register in `ComponentFactory`:
+   ```python
+   _component_classes[ComponentType.NEW_TYPE] = NewComponent
+   _type_name_map["NewType"] = ComponentType.NEW_TYPE
+   ```
+
+### Adding New Report Types
+
+1. Create `stk_toolkit/reports/new_report.py`
+2. Inherit from `ReportBase`
+3. Implement:
+   - `collect_data()` → gather data
+   - `_generate_text()` → format output
+   - `_get_report_type()` → return string id
+4. Register in `ReportGenerator`:
+   ```python
+   _report_classes["new_report"] = NewReport
+   ```
+
+## Known Issues & Workarounds
+
+1. **STK COM startup**: Never try to launch STK programmatically. Always assume it's running.
+
+2. **Constraint EnableMin/Max**: May return True even when UI checkbox is unchecked. Test actual behavior.
+
+3. **COM object caching**: Some COM calls may return cached values. Re-query if needed.
+
+4. **Path format**: STK uses forward slashes: `*/Satellite/MySat`
+
+## File Reference
+
+| File | Purpose |
+|------|---------|
+| `run_report.py` | Quick report generation entry point |
+| `read_scenario.py` | Legacy script (deprecated, kept for reference) |
+| `example_scenario.json` | JSON configuration example |
+| `stk_toolkit/examples/` | Usage examples |
+| `task/template/` | Ready-to-run task templates and JSON configs |
+
+### `task/template/` quick-guide
+
+- `create_satellite_json.py`: Batch-create satellites from JSON.  
+  - `SATELLITES_TO_CREATE` 接受具体名称或 `["ALL"]`（大小写不敏感）以遍历目录下所有 JSON。  
+  - `DELETE_EXISTING_BEFORE_CREATE=True` 时会先删除同名卫星再重建；为 `False` 时遇到同名卫星仅打印提示且跳过创建。  
+  - JSON 命名通常为 `<Name>_config.json`，结构与 `example_scenario.json` 一致。
+- `delete_satellite.py`: 依据 `SATELLITES_TO_DELETE` 列表批量删除卫星，重复运行保持幂等。
+- `report.py`: 连接 STK 并在 `task/template/report/` 目录生成最新场景报告，同时打印文本内容。
+- `satellite3_config.json` / `satellite4_config.json`: 可直接供 `create_satellite_json.py` 使用的示例配置，复制改名即可扩展。
+
+## Coding Conventions
+
+- Classes: `PascalCase`
+- Methods/functions: `snake_case`
+- Private: `_prefix`
+- Constants: `UPPER_SNAKE_CASE`
+- All public methods need docstrings with Args/Returns/Raises
+- Use type hints where practical
+- Chain methods return `self`
+
+## Testing Notes
+
+- Ensure STK11 is running with a loaded scenario
+- Component creation modifies actual STK state
+- Reports should match STK UI display
+- Test on Windows only
+
+## Debug Notes (2025-11-28)
+
+- **COM 接口兼容性**: 在 Python 3.12 + STK 11 环境下，`QueryInterface(IAgClassicalSizeShapeSemimajorAxis)` 可能抛出“接口不支持”。解决方案是先调用对象本身的 `QueryInterface`，捕获 `COMError` 后回退到原对象，同时确保使用正确的枚举常量：`SizeShapeType = 4 (eSizeShapeSemimajorAxis)`、`AscNodeType = 1 (eAscNodeRAAN)`、`LocationType = 5 (eLocationTrueAnomaly)`。
+- **轨道参数读取/写入顺序**: 经典根数需要先设置 `SizeShapeType` 再获取 `SizeShape` 接口，否则部分环境无法返回 `SemiMajorAxis`。同理，在读取 RAAN/真近点角时应先设置 `AscNodeType`/`LocationType`。

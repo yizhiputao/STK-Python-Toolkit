@@ -1,0 +1,59 @@
+{
+  "description": "示例场景配置文件 - 用于批量创建 STK 组件",
+  "components": [
+    {
+      "type": "Satellite",
+      "name": "LEO_Sat1",
+      "propagator": "J2Perturbation",
+      "orbit": {
+        "semi_major_axis": 6878,
+        "eccentricity": 0.0001,
+        "inclination": 97.4,
+        "raan": 0,
+        "arg_of_perigee": 0,
+        "true_anomaly": 0
+      },
+      "step": 60
+    },
+    {
+      "type": "Satellite",
+      "name": "LEO_Sat2",
+      "propagator": "J2Perturbation",
+      "orbit": {
+        "semi_major_axis": 6878,
+        "eccentricity": 0.0001,
+        "inclination": 97.4,
+        "raan": 120,
+        "arg_of_perigee": 0,
+        "true_anomaly": 0
+      },
+      "step": 60
+    },
+    {
+      "type": "Facility",
+      "name": "Beijing_GS",
+      "position": {
+        "latitude": 40.0,
+        "longitude": 116.0,
+        "altitude": 0.05
+      },
+      "constraints": [
+        {"name": "ElevationAngle", "min": 10.0},
+        {"name": "SunElevationAngle", "min": -90.0, "max": 0.0}
+      ]
+    },
+    {
+      "type": "Facility",
+      "name": "Xian_GS",
+      "position": {
+        "latitude": 34.27,
+        "longitude": 108.93,
+        "altitude": 0.4
+      },
+      "constraints": [
+        {"name": "ElevationAngle", "min": 5.0}
+      ]
+    }
+  ]
+}
+

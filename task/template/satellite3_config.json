@@ -1,0 +1,18 @@
+{
+  "components": [
+    {
+      "type": "Satellite",
+      "name": "Satellite3",
+      "propagator": "J2Perturbation",
+      "step": 60.0,
+      "orbit": {
+        "semi_major_axis": 6918.136999999997,
+        "eccentricity": 1.8387057173059806e-16,
+        "inclination": 97.5591231944658,
+        "raan": 295.4248373756,
+        "arg_of_perigee": 0.0,
+        "true_anomaly": 60.0
+      }
+    }
+  ]
+}
