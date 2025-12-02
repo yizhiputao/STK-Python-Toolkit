@@ -20,8 +20,12 @@ stk_toolkit/
 ├── cli/            → Command-line tools (argument parsing, config loading)
 ├── components/     → Create/Delete/Query satellites, facilities, etc.
 ├── modifiers/      → Modify existing components
+├── exports/        → Export components to JSON config files
 ├── conditions/     → Analysis conditions (placeholder)
 └── reports/        → Generate reports (TEXT/JSON)
+    ├── utils.py    → Utility functions (generate_report, generate_report_and_export)
+    ├── generator.py → ReportGenerator class
+    └── scenario_report.py → ScenarioReport class
 ```
 
 ## Module Responsibilities
@@ -32,8 +36,9 @@ stk_toolkit/
 | `cli` | Command-line tools | `parse_create_args`, `parse_delete_args`, `resolve_components` |
 | `components` | Create/Delete/Query STK objects | `SatelliteComponent`, `FacilityComponent`, `ComponentFactory` |
 | `modifiers` | Modify existing objects | `SatelliteModifier`, `FacilityModifier` |
+| `exports` | Export components to JSON | `ComponentExporter`, `export_components_to_json` |
 | `conditions` | Analysis (reserved) | `ConditionBase` |
-| `reports` | Generate reports | `ScenarioReport`, `ReportGenerator` |
+| `reports` | Generate reports | `ScenarioReport`, `ReportGenerator`, `generate_report`, `generate_report_and_export` |
 
 ## STK Object Type Constants
 
@@ -96,9 +101,44 @@ modifier.apply({"orbit": {"inclination": 98.5}})
 ```
 
 ### 6. Generating Reports
+
+**Using utility functions (recommended):**
 ```python
+from stk_toolkit.reports import generate_report_and_export
+
+# Generate report and export components in one call
+success, content, export_result = generate_report_and_export(
+    report_output_dir="./report",
+    export_output_dir="./exports",
+    verbose=True,
+    export_enabled=True
+)
+```
+
+**Using ReportGenerator (advanced):**
+```python
+from stk_toolkit.reports import ReportGenerator, ReportFormat
+
 generator = ReportGenerator(conn, output_dir="./reports")
 report = generator.generate_scenario_report(format=ReportFormat.TEXT)
+```
+
+### 7. Exporting Components
+```python
+from stk_toolkit.exports import export_components_to_json
+
+# Export all components to JSON config files
+result = export_components_to_json(
+    connection=conn,
+    output_dir="./exports",
+    package=True  # Auto-pack into zip file
+)
+
+# Or use ComponentExporter directly
+from stk_toolkit.exports import ComponentExporter
+exporter = ComponentExporter(conn)
+export_dir = exporter.export_all_components("./exports")
+zip_path = exporter.package_components(export_dir)
 ```
 
 ## Orbit Parameters (Classical Elements)
@@ -231,7 +271,8 @@ STKError (base)
 
 | File | Purpose |
 |------|---------|
-| `run_report.py` | Quick report generation entry point |
+| `run_report.py` | Command-line entry point for report generation (calls `stk_toolkit.reports`) |
+| `stk_toolkit/reports/utils.py` | Core utility functions (generate_report, generate_report_and_export) |
 | `read_scenario.py` | Legacy script (deprecated, kept for reference) |
 | `example_scenario.json` | JSON configuration example |
 | `stk_toolkit/examples/` | Usage examples |
@@ -251,7 +292,7 @@ STKError (base)
   - 支持配置文件：读取 `configs/delete_config.json`（默认）
   - 优先级：命令行 > 配置文件
   
-- `report.py`: 连接 STK 并在 `task/template/report/` 目录生成最新场景报告，同时打印文本内容。
+- `report.py`: 调用 `stk_toolkit.reports.generate_report_and_export()` 在 `task/template/report/` 目录生成最新场景报告，同时自动导出所有组件为 JSON 配置文件到 `task/template/exports/` 目录（带时间戳），并打包为 zip 文件。导出的 JSON 文件格式与输入配置文件完全兼容，可直接用于 `create_components_json.py`。
 
 **配置文件组织：**
 ```

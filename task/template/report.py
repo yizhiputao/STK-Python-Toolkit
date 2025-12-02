@@ -10,25 +10,32 @@ import sys
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, PROJECT_ROOT)
 
-from run_report import generate_report_safe
+from stk_toolkit.reports import generate_report_and_export
 
 
 def main():
-    """在当前目录下生成报告"""
+    """在当前目录下生成报告并导出组件配置"""
     # 报告输出目录：脚本所在目录的 report/ 子目录
     report_dir = os.path.join(os.path.dirname(__file__), "report")
+    # 导出目录：脚本所在目录的 exports/ 子目录
+    export_dir = os.path.join(os.path.dirname(__file__), "exports")
     
     print("【生成报告】")
     
-    # 使用安全版本生成报告
-    success, content = generate_report_safe(output_dir=report_dir, verbose=True)
+    # 调用外层的统一函数
+    success, content, export_result = generate_report_and_export(
+        report_output_dir=report_dir,
+        export_output_dir=export_dir,
+        verbose=True,
+        export_enabled=True
+    )
     
     if success:
         # 打印报告内容
         print(content)
         print(f"\n✓ 报告已保存到: {report_dir}")
     else:
-        # 错误信息已在 generate_report_safe 中打印
+        # 错误信息已在 generate_report_and_export 中打印
         pass
 
 

@@ -8,6 +8,7 @@
 - **命令行工具**: 通用的参数解析和配置文件处理，支持灵活的脚本调用方式
 - **组件管理**: 支持代码和 JSON 两种方式创建、删除、查询卫星、地面站等组件
 - **组件修改**: 修改已存在组件的参数（轨道、位置、约束等）
+- **组件导出**: 将场景中的所有组件导出为 JSON 配置文件，可直接用于重新创建
 - **报告生成**: 生成场景状态报告，支持 TXT 和 JSON 格式
 - **条件分析**: 预留访问分析、覆盖分析等功能接口
 
@@ -20,6 +21,7 @@
 │   ├── cli/                    # 命令行工具（参数解析、配置加载）
 │   ├── components/             # 组件创建/删除
 │   ├── modifiers/              # 组件修改
+│   ├── exports/                # 组件导出（JSON格式）
 │   ├── conditions/             # 预留条件模块
 │   └── reports/                # 报告生成
 ├── task/
@@ -31,8 +33,9 @@
 │       │   └── facilities/             # 地面站配置
 │       ├── create_components_json.py   # 通用组件创建脚本
 │       ├── delete_components.py        # 通用组件删除脚本
-│       ├── report.py                   # 场景报告生成
-│       └── report/                     # 报告输出目录
+│       ├── report.py                   # 场景报告生成与组件导出
+│       ├── report/                     # 报告输出目录
+│       └── exports/                    # 组件导出目录（JSON配置）
 ├── examples/                   # 其他示例脚本
 ├── run_report.py               # 快速生成场景报告
 ├── example_scenario.json       # JSON 配置样例
@@ -63,8 +66,13 @@ configs/
       └── Shanghai_config.json
 ```
 
-**报告生成：**
-- `report.py`: 生成并保存最新的场景文本报告。
+**报告生成与组件导出：**
+- `report.py`: 生成并保存最新的场景文本报告，同时自动导出所有组件为 JSON 配置文件
+  - 报告保存到 `report/` 目录
+  - 组件配置导出到 `exports/components_YYYYMMDD_HHMMSS/` 目录
+  - 自动按类型分组（satellite、facility 等）
+  - 自动打包为 zip 文件
+  - 导出的 JSON 文件可直接用于 `create_components_json.py` 重新创建组件
 
 > 详细使用说明请见 `task/template/README.md`。
 
@@ -93,7 +101,7 @@ python task/template/delete_components.py --satellites Satellite3 --facilities B
 python task/template/create_components_json.py   # 使用 configs/create_config.json
 python task/template/delete_components.py        # 使用 configs/delete_config.json
 
-# 生成场景报告
+# 生成场景报告并导出组件配置
 python task/template/report.py
 ```
 
@@ -110,9 +118,26 @@ with STKConnection() as connection:
     report = generator.generate_scenario_report(format=ReportFormat.TEXT)
 ```
 
-也可以直接运行 `python run_report.py`（或 `task/template/report.py`）快速获取报告文件。
+也可以直接运行 `python run_report.py`（或 `task/template/report.py`）快速获取报告文件并导出组件配置。
 
-### 3. 自定义代码（可选）
+### 3. 导出组件配置
+
+```python
+from stk_toolkit import STKConnection
+from stk_toolkit.exports import export_components_to_json
+
+with STKConnection() as connection:
+    # 导出所有组件为JSON并打包
+    result = export_components_to_json(
+        connection=connection,
+        output_dir="./exports",
+        package=True
+    )
+    print(f"导出目录: {result['export_dir']}")
+    print(f"ZIP文件: {result['zip_path']}")
+```
+
+### 4. 自定义代码（可选）
 
 ```python
 from stk_toolkit import STKConnection
@@ -200,6 +225,26 @@ components, options = resolve_components(args, default_config, operation="create
 - `SunElevationAngle`: 太阳仰角约束
 - `LunarElevationAngle`: 月球仰角约束
 - `LineOfSight`: 视线约束
+
+### ComponentExporter
+
+| 方法 | 说明 |
+|------|------|
+| `export_all_components(output_dir)` | 导出所有组件为JSON文件 |
+| `package_components(export_dir)` | 将导出目录打包为zip文件 |
+
+**使用示例：**
+```python
+from stk_toolkit import STKConnection
+from stk_toolkit.exports import ComponentExporter
+
+with STKConnection() as connection:
+    exporter = ComponentExporter(connection)
+    export_dir = exporter.export_all_components("./exports")
+    zip_path = exporter.package_components(export_dir)
+```
+
+导出的JSON文件格式与输入配置文件完全兼容，可直接用于 `create_components_json.py`。
 
 ## 扩展开发
 
